@@ -1,17 +1,17 @@
 #!/bin/bash
 # tmux status bar stock ticker
-# Edit the STOCKS array to customize your watch list.
 # Format: "CODE:LABEL"  (CODE = sina finance code, LABEL = display name)
-#
-# A-shares:   sh600519 (Shanghai)  sz000858 (Shenzhen)
-# Index:      sh000001 (SSE)       sz399001 (SZSE)
-# US stocks:  gb_aapl, gb_tsla, gb_googl, gb_msft
-# HK stocks:  hk00700, hk09988
+
+TMUX_SYMBOLS=$(tmux show-option -gqv @tmux-stock-symbols 2>/dev/null || true)
 
 STOCKS=(
     "sh000001:上证"
     "sh600415:小废品城"
 )
+
+if [ -n "$TMUX_SYMBOLS" ]; then
+    IFS=',' read -ra STOCKS <<< "$TMUX_SYMBOLS"
+fi
 
 codes=""
 for entry in "${STOCKS[@]}"; do
@@ -39,10 +39,14 @@ for entry in "${STOCKS[@]}"; do
     IFS=',' read -ra fields <<< "$raw"
 
     # gb_ prefix = US stocks: fields[1]=current, fields[2]=change_amount
-    # others (A-shares, index, HK): fields[2]=prev_close, fields[3]=current
+    # hk prefix = HK stocks: fields[6]=current, fields[8]=change_percent
+    # others (A-shares, index): fields[2]=prev_close, fields[3]=current
     if [[ "$code" == gb_* ]]; then
         current="${fields[1]}"
         change="${fields[2]}"
+    elif [[ "$code" == hk* ]]; then
+        current="${fields[6]}"
+        change="${fields[8]}"
     else
         current="${fields[3]}"
         prev_close="${fields[2]}"
